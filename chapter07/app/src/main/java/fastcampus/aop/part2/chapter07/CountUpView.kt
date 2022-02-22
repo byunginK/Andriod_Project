@@ -28,6 +28,10 @@ class CountUpView(context: Context, attrs: AttributeSet? = null):AppCompatTextVi
         handler?.removeCallbacks(countUPAction)
     }
 
+    fun clearCountTime(){
+        updateCountTime(0)
+    }
+
     private fun updateCountTime(countTimeSeconds: Int){
         val minutes = countTimeSeconds / 60
         val seconds = countTimeSeconds % 60

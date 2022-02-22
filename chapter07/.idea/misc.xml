@@ -3,7 +3,8 @@
   <component name="DesignSurface">
     <option name="filePathToZoomLevelMap">
       <map>
-        <entry key="..\:/androidPJ/chapter07/app/src/main/res/layout/activity_main.xml" value="0.1" />
+        <entry key="..\:/androidPJ/chapter07/app/src/main/res/drawable/shape_oval_button.xml" value="0.1" />
+        <entry key="..\:/androidPJ/chapter07/app/src/main/res/layout/activity_main.xml" value="0.17" />
       </map>
     </option>
   </component>
