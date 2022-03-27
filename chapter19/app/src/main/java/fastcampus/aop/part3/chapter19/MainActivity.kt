@@ -19,6 +19,7 @@ import kotlin.math.abs
 class MainActivity : AppCompatActivity() {
 
     private var isGatheringMotionAnimating: Boolean = false
+    private var isCurationMotionAnimating: Boolean = false
 
     private val binding by lazy {
         ActivityMainBinding.inflate(layoutInflater)
@@ -31,20 +32,98 @@ class MainActivity : AppCompatActivity() {
         makeStatusBarTransparent()
         initAppBar()
         initInsetMargin()
+        initScrollViewListeners()
+        initMotionLayoutListeners()
+
+    }
+
+    /*시스템에 접근하여 최상단 툴바의 마진들을 커스텀함*/
+    private fun initInsetMargin() = with(binding) {
+        ViewCompat.setOnApplyWindowInsetsListener(coordinator) { v: View, insets: WindowInsetsCompat ->
+            val params = v.layoutParams as ViewGroup.MarginLayoutParams
+            params.bottomMargin = insets.systemWindowInsetBottom
+            toolbarContainer.layoutParams =
+                (toolbarContainer.layoutParams as ViewGroup.MarginLayoutParams).apply {
+                    setMargins(0, insets.systemWindowInsetTop, 0, 0)
+                }
+            collapsingToolbarContainer.layoutParams =
+                (collapsingToolbarContainer.layoutParams as ViewGroup.MarginLayoutParams).apply {
+                    setMargins(0, 0, 0, 0)
+                }
+            insets.consumeSystemWindowInsets()
+        }
+    }
+
+
+    /*특정 스크롤을 하게 되면 투명한게 없어짐*/
+    private fun initAppBar() {
+        binding.appBar.addOnOffsetChangedListener(AppBarLayout.OnOffsetChangedListener { appBarLayout, verticalOffset ->
+            val topPadding = 300f.dpTopx(this)
+            val realAlphaScrollHeight = appBarLayout.measuredHeight - appBarLayout.totalScrollRange
+            val abstractOffset = abs(verticalOffset)
+
+            val realAlphaVerticalOffset =
+                if (abstractOffset - topPadding < 0) 0f else abstractOffset - topPadding
+
+            if (abstractOffset < topPadding) {
+                binding.toolbarBackgroundView.alpha = 0f
+                return@OnOffsetChangedListener
+            }
+            val percentage = realAlphaVerticalOffset / realAlphaScrollHeight
+            binding.toolbarBackgroundView.alpha =
+                1 - (if (1 - percentage * 2 < 0) 0f else 1 - percentage * 2)
+        })
+        initActionBar()
+    }
+
+    /*액션바 선언*/
+    private fun initActionBar() = with(binding) {
+        toolbar.navigationIcon = null
+        toolbar.setContentInsetsAbsolute(0, 0)
+        setSupportActionBar(binding.toolbar)
+        supportActionBar?.let {
+            it.setHomeButtonEnabled(false)
+            it.setDisplayHomeAsUpEnabled(false)
+            it.setDisplayShowHomeEnabled(false)
+        }
+    }
+
+
+    private fun Float.dpTopx(context: Context): Float =
+        TypedValue.applyDimension(
+            TypedValue.COMPLEX_UNIT_DIP,
+            this,
+            context.resources.displayMetrics
+        )
+
+    private fun initScrollViewListeners(){
+        binding.scrollView.smoothScrollTo(0,0)
         binding.scrollView.viewTreeObserver.addOnScrollChangedListener {
-            if (binding.scrollView.scrollY > 150f.dpTopx(this).toInt()) {
+            val scrolledValue = binding.scrollView.scrollY
+            if ( scrolledValue> 150f.dpTopx(this).toInt()) {
                 if (isGatheringMotionAnimating.not()) {
+                    binding.gatheringDigitalThingBackgroundMotionLayout.transitionToEnd()
                     binding.gatheringDigitalThingsLayout.transitionToEnd()
                     binding.buttonShownMotionLayout.transitionToEnd()
                 }
             } else {
                 if (isGatheringMotionAnimating.not()) {
+                    binding.gatheringDigitalThingBackgroundMotionLayout.transitionToStart()
                     binding.gatheringDigitalThingsLayout.transitionToStart()
                     binding.buttonShownMotionLayout.transitionToStart()
                 }
             }
-        }
+            if(scrolledValue > binding.scrollView.height){
+                if(isCurationMotionAnimating.not()){
+                    binding.curationAnimationMotionLayout.setTransition(R.id.curation_animation_start1, R.id.curation_animation_end1)
+                    binding.curationAnimationMotionLayout.transitionToEnd()
 
+                }
+            }
+        }
+    }
+
+    private fun initMotionLayoutListeners(){
         binding.gatheringDigitalThingsLayout.setTransitionListener(object :
             MotionLayout.TransitionListener {
             override fun onTransitionStarted(
@@ -74,59 +153,41 @@ class MainActivity : AppCompatActivity() {
             ) = Unit
 
         })
-    }
-    /*시스템에 접근하여 최상단 툴바의 마진들을 커스텀함*/
-    private fun initInsetMargin() = with(binding){
-        ViewCompat.setOnApplyWindowInsetsListener(coordinator){v:View, insets: WindowInsetsCompat ->
-            val params = v.layoutParams as ViewGroup.MarginLayoutParams
-            params.bottomMargin = insets.systemWindowInsetBottom
-            toolbarContainer.layoutParams = (toolbarContainer.layoutParams as ViewGroup.MarginLayoutParams).apply {
-                setMargins(0,insets.systemWindowInsetTop,0,0)
-            }
-            collapsingToolbarContainer.layoutParams = (collapsingToolbarContainer.layoutParams as ViewGroup.MarginLayoutParams).apply {
-                setMargins(0,0,0,0)
-            }
-            insets.consumeSystemWindowInsets()
-        }
-    }
+        binding.curationAnimationMotionLayout.setTransitionListener(object :
+            MotionLayout.TransitionListener {
+            override fun onTransitionStarted(
+                motionLayout: MotionLayout?,
+                startId: Int,
+                endId: Int
+            ) = Unit
+            override fun onTransitionChange(
+                motionLayout: MotionLayout?,
+                startId: Int,
+                endId: Int,
+                progress: Float
+            ) = Unit
 
-
-    /*특정 스크롤을 하게 되면 투명한게 없어짐*/
-    private fun initAppBar(){
-        binding.appBar.addOnOffsetChangedListener(AppBarLayout.OnOffsetChangedListener{appBarLayout, verticalOffset ->
-            val topPadding = 120f.dpTopx(this)
-            val abstractOffset = abs(verticalOffset)
-            if(abstractOffset < topPadding){
-                binding.toolbarBackgroundView.alpha = 0f
-                return@OnOffsetChangedListener
+            override fun onTransitionCompleted(motionLayout: MotionLayout?, currentId: Int) {
+                when(currentId){
+                    R.id.curation_animation_end1 -> {
+                        binding.curationAnimationMotionLayout.setTransition(R.id.curation_animation_start2, R.id.curation_animation_end2)
+                        binding.curationAnimationMotionLayout.transitionToEnd()
+                    }
+                }
             }
-            val verticalOffsetByTopPadding = abstractOffset - topPadding
-            val percentage = abs(verticalOffsetByTopPadding) / appBarLayout.totalScrollRange
-            binding.toolbarBackgroundView.alpha = 1 - (if(1-percentage * 2 < 0) 0f else 1- percentage*2)
+
+            override fun onTransitionTrigger(
+                motionLayout: MotionLayout?,
+                triggerId: Int,
+                positive: Boolean,
+                progress: Float
+            ) = Unit
+
         })
-        initActionBar()
     }
 
-    /*액션바 선언*/
-    private fun initActionBar() = with(binding){
-        toolbar.navigationIcon = null
-        toolbar.setContentInsetsAbsolute(0,0)
-        setSupportActionBar(binding.toolbar)
-        supportActionBar?.let {
-            it.setHomeButtonEnabled(false)
-            it.setDisplayHomeAsUpEnabled(false)
-            it.setDisplayShowHomeEnabled(false)
-        }
-    }
-
-
-    private fun Float.dpTopx(context: Context): Float =
-        TypedValue.applyDimension(
-            TypedValue.COMPLEX_UNIT_DIP,
-            this,
-            context.resources.displayMetrics
-        )
 }
+
 fun Activity.makeStatusBarTransparent() {
     with(window) {
         decorView.systemUiVisibility =
